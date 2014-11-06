@@ -776,15 +776,33 @@ SpriteMorph.prototype.initBlocks = function () {
         // Sensing
 
 		//================================
-		// Video control blocks
+		// Video and Microphone control blocks
 		// Aldo 2014
 		//================================
+		manageAudio: {
+			only: StageMorph,
+			type: 'command',
+            category: 'sensing',
+            spec: 'turn microphone on'
+		},
+		freeAudio: {
+			only: StageMorph,
+			type: 'command',
+            category: 'sensing',
+            spec: 'turn microphone off'
+		},
 		manageVideo: {
 			only: StageMorph,
 			type: 'command',
             category: 'sensing',
             spec: 'turn video on'
 		},
+		/*manageVideoWithAudio: {
+			only: StageMorph,
+			type: 'command',
+            category: 'sensing',
+            spec: 'turn video and microphone on'
+		}, */
 		freeVideo: {
 			only: StageMorph,
 			type: 'command',
@@ -2644,6 +2662,23 @@ SpriteMorph.prototype.reportCostumes = function () {
     return this.costumes;
 };
 
+SpriteMorph.prototype.manageAudio = function () {
+	if (this instanceof StageMorph) {
+		this.microphone = 1;
+		/* ========================================================================= 
+		 * Instantiate an audioOnCanvas and assign myself to it.
+		 *
+		 * videoOnCanvas Snap! Extension
+		 * Aldo 2014
+		 *                                                                           */
+		this.myAudioOnCanvas = new audioOnCanvas(this);
+		/* ========================================================================= */
+		//alert("Audio should now be  ON!");
+	} else {
+		alert("Only the Stage can turn the Audio ON!");
+	}
+};
+
 /* ==================================================================
  * SpriteMorph Video Management (videoOnCanvas Snap! Extension)
  * Creates the methods manageVideo and freeVideo for the class SpriteMorph
@@ -2654,6 +2689,7 @@ SpriteMorph.prototype.reportCostumes = function () {
 SpriteMorph.prototype.manageVideo = function () {
 	if (this instanceof StageMorph) {
 		this.webcam = 1;
+		this.microphone = 0;
 		/* ========================================================================= 
 		 * Instantiate a videoOnCanvas and assign myself (the context does not suffice) 
 		 * and the drawVideoOnCanvasFunction as video capture routine to it.
@@ -2671,6 +2707,26 @@ SpriteMorph.prototype.manageVideo = function () {
 	}
 };
 
+SpriteMorph.prototype.manageVideoWithAudio = function () {
+	if (this instanceof StageMorph) {
+		this.webcam = 1;
+		/* ========================================================================= 
+		 * Instantiate a videoOnCanvas and assign myself (the context does not suffice) 
+		 * and the drawVideoOnCanvasFunction as video capture routine to it.
+		 * The drawVideoOnCanvasFunction is implemented in videoOnCanvas.js
+		 * The drawVideoOnCanvasFunction calls StageMorph.changed() for each frame of the webcam.
+		 *
+		 * videoOnCanvas Snap! Extension
+		 * Aldo 2014
+		 *                                                                           */
+		this.myvideoOnCanvas = new videoOnCanvas(this, drawVideoOnCanvasFunction);
+		/* ========================================================================= */
+		//alert("Video and Audio should now be  ON!");
+	} else {
+		alert("Only the Stage can turn the Video ON!");
+	}
+};
+
 SpriteMorph.prototype.pauseVideo = function () {
 	if (this instanceof StageMorph) {
 		/* ========================================================================= 
@@ -2678,7 +2734,9 @@ SpriteMorph.prototype.pauseVideo = function () {
 		 * videoOnCanvas Snap! Extension
 		 * Aldo 2014
 		 *                                                                           */
-		// Tell the developer which is the Class of the Video
+		// Clumsy way to tell the developer which is the Class of the Video. 
+		// Longing for Smalltalk's class method. 
+		// We were happy and did not know it....
 		console.log(this.video.constructor.name);
 		this.video.pause();
 		this.changed();
@@ -2705,18 +2763,36 @@ SpriteMorph.prototype.playVideo = function () {
 
 SpriteMorph.prototype.freeVideo = function () {
 	if (this instanceof StageMorph) {
-		this.webcam = 0;
 		/* ========================================================================= 
 		 *
 		 * videoOnCanvas Snap! Extension
 		 * Aldo 2014
 		 *                                                                           */
-		this.video.pause();
-		//this.video.src = ""; // Dirty hack to kill the video stream
-		this.drawNew();
+		if (this.webcam) {
+			this.webcam = 0;
+			this.stream.stop();
+			this.drawNew();
+		}
 		/* ========================================================================= */
 	} else {
 		alert("Only the Stage can turn the Video OFF!");
+	}
+};
+
+SpriteMorph.prototype.freeAudio = function () {
+	if (this instanceof StageMorph) {
+		/* ========================================================================= 
+		 *
+		 * videoOnCanvas Snap! Extension
+		 * Aldo 2014
+		 *  																		*/
+		if (this.microphone) {			
+			this.microphone = 0;
+			this.audiostream.stop();
+		}
+		/* ========================================================================= */
+	} else {
+		alert("Only the Stage can turn the Audio OFF!");
 	}
 };
 
@@ -5216,7 +5292,10 @@ StageMorph.prototype.blockTemplates = function (category) {
 
 		// Video Blocks for the StageMorph
 		// videoOnCanvas Snap! Extension
+		blocks.push(block('manageAudio'));
+		blocks.push(block('freeAudio'));
 		blocks.push(block('manageVideo'));
+		//blocks.push(block('manageVideoWithAudio'));
 		blocks.push(block('freeVideo'));
 		blocks.push(block('pauseVideo'));
 		blocks.push(block('playVideo'));
@@ -5707,8 +5786,17 @@ StageMorph.prototype.reportSounds
  * 
  * Aldo 2014
  * ================================================================== */
+StageMorph.prototype.manageAudio
+    = SpriteMorph.prototype.manageAudio;
+
+StageMorph.prototype.freeAudio
+    = SpriteMorph.prototype.freeAudio;
+
 StageMorph.prototype.manageVideo
     = SpriteMorph.prototype.manageVideo;
+
+StageMorph.prototype.manageVideoWithAudio
+    = SpriteMorph.prototype.manageVideoWithAudio;
 	
 StageMorph.prototype.pauseVideo
     = SpriteMorph.prototype.pauseVideo;

@@ -121,14 +121,27 @@ function videoOnCanvas(morphContext, drawVideoFunction) {
   console.log("Width: " + this.canvasContext.canvas.width+"px");
   console.log("Height: " + this.canvasContext.canvas.height+"px");
   
-  var videoConstraints = {
-  video: {
-    mandatory: {
-      width: this.canvasContext.canvas.width,
-      weight: this.canvasContext.canvas.height
-    }
+  if (morphContext.microphone) {
+	// Turn the camera microphone ON
+	var videoConstraints = {
+		video: {
+			mandatory: {
+				width: this.canvasContext.canvas.width,
+				weight: this.canvasContext.canvas.height
+			}
+		}, audio: true
+	}
+  } else {
+	// Leave the camera microphone OFF
+	var videoConstraints = {
+		video: {
+			mandatory: {
+				width: this.canvasContext.canvas.width,
+				weight: this.canvasContext.canvas.height
+			}
+		}
+	}
   }
-};
   
   this.video.setAttribute('style', 'display:none');
   this.video.setAttribute('style', 'width:'+this.canvasContext.canvas.width);
@@ -141,7 +154,8 @@ function videoOnCanvas(morphContext, drawVideoFunction) {
   navigator.getUserMedia(videoConstraints, function(stream) {
     // Yay, now our webcam input is treated as a normal video and
     // we can start having fun with Scratch/SNAP!
-    self.video.src = window.URL.createObjectURL(stream)
+    self.video.src = window.URL.createObjectURL(stream);
+	morphContext.stream = stream;
     // Let's start drawing the video output on the canvas!
     self.update()
   }, videoOnCanvasError);
@@ -170,20 +184,17 @@ function videoOnCanvas(morphContext, drawVideoFunction) {
 	  // Request video input for the next frame...
       requestAnimationFrame(loop);
 	  // Let the developer know I'm running....
-	  console.log("looping ..." + morphContext.webcam);
+	  // console.log("looping ..." + morphContext.webcam);
 	  if (morphContext.webcam == 0) {
 		if (request) {
 			cancelAnimationFrame(request);
-			console.log("Requested cancellation");
+			//console.log("Requested cancellation");
 		}
 		return;
 	  }
     }
     var request = requestAnimationFrame(loop);
 	console.log("loop was called once ...");
-
-	//console.log("Width: " + this.canvasContext.canvas.width);
-	//console.log("Height: " + this.canvasContext.canvas.height);
   } 
 }
 
@@ -191,3 +202,48 @@ function videoOnCanvasError(e) {
 	alert("VideoOnCanvas: No camera available...");
 }
 
+
+//===============================================================
+
+/* ------------------------------------------------------------------------- *
+ *  This function takes a 2D canvas context, creates an audio element and strats streaming the microphone...
+ *
+ * Aldo von Wangenheim
+ * http://www.computacaonaescola.ufsc.br/
+ * October 2014
+ * -------------------------------------------------------------------------- */
+function audioOnCanvas(morphContext) {
+  var self = this
+  this.canvasContext = morphContext.image.getContext('2d'); // I'm passing the whole StageMorph to be able to "change" it.
+  this.audio = document.createElement('audio');
+  this.audio.setAttribute('id', 'microphone');
+  // If we don't do this, the stream will not be played.
+  // Play and pause controls should work as usual 
+  // for streamed videos.
+  this.audio.setAttribute('autoplay', '1');
+  // Store the HTML5 <audio> element in an instance variable of my StageMorph
+  morphContext.audio = this.audio;
+  // The callback happens when we are starting to stream the audio.
+  navigator.getUserMedia({audio: true}, function(stream) {
+    self.audio.src = window.URL.createObjectURL(stream);
+	// Store a pointer to the audio stream in an instance variable of my StageMorph
+	morphContext.audiostream = stream;
+    self.update()
+  }, audioOnCanvasError);
+ 
+  // As soon as we can draw a new frame on the canvas, we call the `drawVideoFunction`  
+  // function we passed as a parameter.
+  this.update = function() {
+    var self = this;
+    var loop = function() {
+	  // Request audio input...
+      requestAnimationFrame(loop);
+    }
+    var request = requestAnimationFrame(loop);
+	console.log("microphone loop was called once ...");
+  } 
+}
+
+function audioOnCanvasError(e) {
+	alert("AudioOnCanvas: No microphone available...");
+}
